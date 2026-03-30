@@ -1,7 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 import math
-import random
 import time
 from typing import Optional
 
@@ -11,6 +10,7 @@ from game_logic import (
     simulate_one_turn,
     evaluate_state_for_snake,
     is_terminal_for_snake,
+    heuristic_best_move_for_snake,
 )
 
 EXPLORATION_C = 1.4
@@ -64,7 +64,6 @@ def rollout(state: dict, my_snake_id: str, max_depth: int = ROLLOUT_DEPTH) -> fl
         if not legal:
             break
 
-        from game_logic import heuristic_best_move_for_snake
         move = heuristic_best_move_for_snake(cur, my_snake_id)
         cur = simulate_one_turn(cur, my_snake_id, move)
 
