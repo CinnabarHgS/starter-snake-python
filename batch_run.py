@@ -5,7 +5,7 @@ import run_game
 
 SUMMARY_PATH = Path("logs/game_summaries.csv")
 TARGET_SNAKE = "Snake4"
-NUM_GAMES = 50
+NUM_GAMES = 10
 START_SEED = 1000
 SLEEP_BETWEEN_GAMES = 3.0
 
