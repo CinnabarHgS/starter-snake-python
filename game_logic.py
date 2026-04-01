@@ -274,20 +274,38 @@ def heuristic_best_move_for_snake(state: dict, snake_id: str) -> str:
 
 
 def evaluate_state_for_snake(state: dict, snake_id: str) -> float:
-    snake = get_snake_by_id(state, snake_id)
-    if snake is None:
+    me = get_snake_by_id(state, snake_id)
+    if me is None:
         return -1e6
 
+    snakes = state["board"]["snakes"]
+    opponents = [s for s in snakes if s["id"] != snake_id]
+
+    my_legal = len(get_legal_moves_for_snake(state, snake_id))
+    max_enemy_length = max((s["length"] for s in opponents), default=0)
+    enemy_count = len(opponents)
+
     score = 0.0
-    score += snake["length"] * 20.0
-    score += snake["health"] * 0.5
 
+    # survival first
+    score += 300.0
+
+    # own status
+    score += me["length"] * 18.0
+    score += me["health"] * 0.4
+    score += my_legal * 18.0
+
+    # relative strength
+    score += (me["length"] - max_enemy_length) * 25.0
+
+    # fewer surviving opponents is good
+    score -= enemy_count * 40.0
+
+    # keep local heuristic signal
     legal = get_legal_moves_for_snake(state, snake_id)
-    score += len(legal) * 15.0
-
     if legal:
         best_local = max(evaluate_move_for_snake(state, snake_id, m) for m in legal)
-        score += 0.5 * best_local
+        score += 0.4 * best_local
 
     return score
 

@@ -14,7 +14,7 @@ from game_logic import (
 )
 
 EXPLORATION_C = 1.4
-ROLLOUT_DEPTH = 6
+ROLLOUT_DEPTH = 4
 
 
 @dataclass
