@@ -1,6 +1,7 @@
 import copy
 from collections import deque
 from typing import Dict, List
+import os
 
 Move = str
 Point = Dict[str, int]
@@ -12,6 +13,8 @@ DIRECTIONS = {
     "right": (1, 0),
 }
 
+#EVAL_VERSION = os.environ.get("EVAL_VERSION", "new").lower()
+EVAL_VERSION = "new"
 
 def clone_state(state: dict) -> dict:
     return copy.deepcopy(state)
@@ -274,6 +277,29 @@ def heuristic_best_move_for_snake(state: dict, snake_id: str) -> str:
 
 
 def evaluate_state_for_snake(state: dict, snake_id: str) -> float:
+    if EVAL_VERSION == "old":
+        return evaluate_state_old(state, snake_id)
+    return evaluate_state_new(state, snake_id)
+
+def evaluate_state_old(state: dict, snake_id: str) -> float:
+    snake = get_snake_by_id(state, snake_id)
+    if snake is None:
+        return -1e6
+
+    score = 0.0
+    score += snake["length"] * 20.0
+    score += snake["health"] * 0.5
+
+    legal = get_legal_moves_for_snake(state, snake_id)
+    score += len(legal) * 15.0
+
+    if legal:
+        best_local = max(evaluate_move_for_snake(state, snake_id, m) for m in legal)
+        score += 0.5 * best_local
+
+    return score
+
+def evaluate_state_new(state: dict, snake_id: str) -> float:
     me = get_snake_by_id(state, snake_id)
     if me is None:
         return -1e6
@@ -282,34 +308,60 @@ def evaluate_state_for_snake(state: dict, snake_id: str) -> float:
     opponents = [s for s in snakes if s["id"] != snake_id]
 
     my_legal = len(get_legal_moves_for_snake(state, snake_id))
-    max_enemy_length = max((s["length"] for s in opponents), default=0)
     enemy_count = len(opponents)
+
+    max_enemy_length = max((s["length"] for s in opponents), default=0)
+    avg_enemy_length = (
+        sum(s["length"] for s in opponents) / enemy_count if enemy_count > 0 else 0.0
+    )
+
+    my_head = me["body"][0]
+    foods = get_food_list(state)
+    dist_food = min_food_distance(my_head, foods)
 
     score = 0.0
 
-    # survival first
-    score += 300.0
+    # hard survival prior
+    score += 400.0
 
     # own status
-    score += me["length"] * 18.0
-    score += me["health"] * 0.4
-    score += my_legal * 18.0
+    score += me["length"] * 20.0
+    score += me["health"] * 0.35
+    score += my_legal * 20.0
 
-    # relative strength
-    score += (me["length"] - max_enemy_length) * 25.0
+    # relative strength: longer than opponents is good
+    score += (me["length"] - max_enemy_length) * 35.0
+    score += (me["length"] - avg_enemy_length) * 15.0
 
-    # fewer surviving opponents is good
-    score -= enemy_count * 40.0
+    # fewer opponents alive is strongly good
+    score -= enemy_count * 55.0
 
-    # keep local heuristic signal
+    # food pressure: only matters more when health is low
+    if me["health"] <= 25:
+        score -= dist_food * 10.0
+    elif me["health"] <= 50:
+        score -= dist_food * 5.0
+    else:
+        score -= dist_food * 1.5
+
+    # terminal-race signal: if only one opponent remains,
+    # length advantage matters a lot more
+    if enemy_count == 1:
+        only_enemy = opponents[0]
+        if me["length"] > only_enemy["length"]:
+            score += 120.0
+        elif me["length"] < only_enemy["length"]:
+            score -= 120.0
+        else:
+            score -= 20.0
+
+    # local heuristic signal: keep it, but don't let it dominate
     legal = get_legal_moves_for_snake(state, snake_id)
     if legal:
         best_local = max(evaluate_move_for_snake(state, snake_id, m) for m in legal)
-        score += 0.4 * best_local
+        score += 0.25 * best_local
 
     return score
-
-
 def resolve_deaths(snakes: list[dict], width: int, height: int) -> list[dict]:
     alive = []
 

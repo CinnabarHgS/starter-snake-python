@@ -7,7 +7,7 @@ import run_game_mixed
 
 SUMMARY_PATH = Path("logs/game_summaries.csv")
 TARGET_SNAKE = "Candidate"
-GAMES_PER_SLOT = 5
+GAMES_PER_SLOT = 10
 START_SEED = 2000
 SLEEP_BETWEEN_GAMES = 3.0
 
