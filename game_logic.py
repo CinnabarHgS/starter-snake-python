@@ -333,6 +333,7 @@ def evaluate_state_new(state: dict, snake_id: str) -> float:
         score += 0.4 * best_local
 
     return score
+
 def resolve_deaths(snakes: list[dict], width: int, height: int) -> list[dict]:
     alive = []
 

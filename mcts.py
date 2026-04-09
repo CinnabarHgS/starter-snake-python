@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import math
 import time
 from typing import Optional
+import os
 
 from game_logic import (
     clone_state,
@@ -15,7 +16,7 @@ from game_logic import (
 
 EXPLORATION_C = 1.4
 ROLLOUT_DEPTH = 4
-
+ROLLOUT_MODE = os.environ.get("ROLLOUT_MODE", "heuristic").lower()
 
 @dataclass
 class Node:
@@ -64,7 +65,11 @@ def rollout(state: dict, my_snake_id: str, max_depth: int = ROLLOUT_DEPTH) -> fl
         if not legal:
             break
 
-        move = heuristic_best_move_for_snake(cur, my_snake_id)
+        if ROLLOUT_MODE == "random":
+            move = random.choice(legal)
+        else:
+            move = heuristic_best_move_for_snake(cur, my_snake_id)
+
         cur = simulate_one_turn(cur, my_snake_id, move)
 
     return evaluate_state_for_snake(cur, my_snake_id)
